@@ -1,7 +1,7 @@
 from docarray import DocumentArray
+from config import DOCARRAY_NAME
 
-pushed_name = "paramaggarwal-fashion-product-images-small"
-docs = DocumentArray.pull(pushed_name)
+docs = DocumentArray.pull(DOCARRAY_NAME)
 
 for doc in docs:
     print(doc)

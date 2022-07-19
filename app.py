@@ -1,3 +1,5 @@
+from helper import csv_to_docarray
+from config import CSV_FILE, DOCARRAY_NAME, CSV_FILE, DATA_DIR, MAX_DOCS
 import os
 import subprocess
 import sys
@@ -7,12 +9,21 @@ import csv
 
 data_dir = "../data"
 dataset_name = "paramaggarwal/fashion-product-images-small"
-filename = "fashion-product-images-small.zip"
+# filename = "fashion-product-images-small.zip"
 csv_filename = "styles.csv"
 
 
+def create_docarray(csv_file, name, max_docs):
+    print(f"Creating initial DocumentArray with maximum {max_docs} Documents")
+    docs = csv_to_docarray(file_path=csv_file, max_docs=max_docs)
+
+    print(f"Pushing {len(docs)} Documents to cloud with name {name}")
+    docs.push(name)
+
+
 def filter_good_rows(
-    desired_field_count=10, input_file=csv_filename, output_file=f"fixed_styles.csv"
+    desired_field_count=MAX_DOCS,
+    input_file=CSV_FILE,
 ):
     """
     Some CSVs may have different number of fields per row, which really messes up doc.tags. We'll remove these malformed rows
@@ -20,6 +31,10 @@ def filter_good_rows(
     good_list = []
     wtflist = []
 
+    output_filename = f"fixed_{input_file.split('/')[-1]}"
+    output_file = f"{DATA_DIR}/{output_filename}"
+
+    print("- Removing malformed rows")
     # Get fields
     with open(input_file, "r") as file:
         fields_string = file.readlines()[0]
@@ -44,36 +59,12 @@ def filter_good_rows(
     print(f"BAD: {len(wtflist)} rows with weird number of keys")
 
 
-if not os.path.isfile(f"{os.path.expanduser('~')}/.kaggle/kaggle.json"):
-    print(
-        "1. Please create a Kaggle account to download the dataset: https://www.kaggle.com/ \n2. Ensure ~/.kaggle/kaggle.json exists"
-    )
-    sys.exit()
+def __main__():
+    filter_good_rows()
+    create_docarray(csv_file=CSV_FILE, name=DOCARRAY_NAME, max_docs=MAX_DOCS)
 
-if not os.path.isdir(data_dir):
-    os.mkdir(data_dir)
+    print(f"- Deleting original {csv_filename}")
+    os.remove(csv_filename)
 
-os.chdir(data_dir)
-
-if not os.path.isdir("images"):
-    print("- Downloading dataset")
-    subprocess.run(["kaggle", "datasets", "download", "--force", dataset_name])
-
-    print("- Unzipping dataset")
-    with ZipFile(filename, "r") as zipfile:
-        zipfile.extractall(".")
-
-    print("- Deleting unused files to free up space")
-    shutil.rmtree("myntradataset")
-
-    print("- Deleting zip file")
-    os.remove(filename)
-
-print("- Removing malformed rows")
-filter_good_rows()
-
-print(f"- Deleting original {csv_filename}")
-os.remove(csv_filename)
-
-print(f"- Renaming sanitized CSV to {csv_filename}")
-os.rename("fixed_styles.csv", csv_filename)
+    print(f"- Renaming sanitized CSV to {csv_filename}")
+    os.rename("fixed_styles.csv", csv_filename)
